@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LEÃO DE JUDÁ - Controle de Mensalidades - criador by @lisonjs</title>
+  <style>
+    body {
+      background-color: #000;
+      color: #f1c40f;
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #222;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+      color: #f1c40f;
+    }
+
+    main {
+      padding: 1rem;
+    }
+
+    section {
+      background-color: #111;
+      border-radius: 10px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 0 10px #333;
+    }
+
+    h2 {
+      color: #f1c40f;
+    }
+
+    label, input, button, select {
+      display: block;
+      margin: 0.5rem 0;
+    }
+
+    input, select {
+      padding: 0.5rem;
+      border: none;
+      border-radius: 5px;
+      background-color: #222;
+      color: #f1c40f;
+    }
+
+    button {
+      background-color: #f1c40f;
+      color: #000;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background-color: #222;
+      margin: 0.3rem 0;
+      padding: 0.5rem;
+      border-radius: 5px;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #555;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>LEÃO DE JUDÁ</h1>
+    <p>Controle de Mensalidades</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Todos os Alunos</h2>
+      <input type="text" id="nomeAluno" placeholder="Nome do aluno">
+      <button onclick="adicionarAluno()">Adicionar Aluno</button>
+      <ul id="listaAlunos"></ul>
+    </section>
+
+    <section>
+      <h2>Pagamentos Confirmados</h2>
+      <select id="selectPagou"></select>
+      <button onclick="confirmarPagamento()">Confirmar Pagamento</button>
+      <ul id="listaPagamentos"></ul>
+    </section>
+
+    <section>
+      <h2>Alunos em Aberto</h2>
+      <ul id="listaPendentes"></ul>
+    </section>
+
+    <section>
+      <h2>Exportar Lista</h2>
+      <button onclick="exportarDados()">Exportar para WhatsApp</button>
+    </section>
+
+    <section>
+      <h2>Reiniciar Pagamentos do Mês</h2>
+      <button onclick="reiniciarPagamentos()">Reiniciar</button>
+    </section>
+
+    <!-- 🔥 NOVA SEÇÃO DE BACKUP -->
+    <section>
+      <h2>Backup de Alunos</h2>
+      <button onclick="exportarAlunos()">Exportar Alunos</button>
+      <input type="file" id="importarArquivo" accept=".txt" onchange="importarAlunos(event)">
+    </section>
+  </main>
+
+  <footer>
+    <p>The @lisonjs [ by Jarlison ] - criator</p>
+  </footer>
+
+  <script>
+    let alunos = JSON.parse(localStorage.getItem('alunos')) || [];
+    let pagos = JSON.parse(localStorage.getItem('pagos')) || [];
+
+    function salvarDados() {
+      localStorage.setItem('alunos', JSON.stringify(alunos));
+      localStorage.setItem('pagos', JSON.stringify(pagos));
+    }
+
+    function atualizarListas() {
+      document.getElementById('listaAlunos').innerHTML = '';
+      document.getElementById('listaPagamentos').innerHTML = '';
+      document.getElementById('listaPendentes').innerHTML = '';
+      document.getElementById('selectPagou').innerHTML = '';
+
+      alunos.sort((a, b) => a.localeCompare(b));
+      pagos.sort((a, b) => a.localeCompare(b));
+
+      alunos.forEach((aluno, index) => {
+        const li = document.createElement('li');
+        li.textContent = aluno;
+        const btn = document.createElement('button');
+        btn.textContent = 'Remover';
+        btn.onclick = () => {
+          alunos.splice(index, 1);
+          pagos = pagos.filter(p => p !== aluno);
+          salvarDados();
+          atualizarListas();
+        };
+        li.appendChild(btn);
+        document.getElementById('listaAlunos').appendChild(li);
+
+        const option = document.createElement('option');
+        option.value = aluno;
+        option.textContent = aluno;
+        document.getElementById('selectPagou').appendChild(option);
+      });
+
+      pagos.forEach(p => {
+        const li = document.createElement('li');
+        li.textContent = p;
+        document.getElementById('listaPagamentos').appendChild(li);
+      });
+
+      alunos.filter(a => !pagos.includes(a)).forEach(a => {
+        const li = document.createElement('li');
+        li.textContent = a;
+        document.getElementById('listaPendentes').appendChild(li);
+      });
+    }
+
+    function adicionarAluno() {
+      const nome = document.getElementById('nomeAluno').value.trim();
+      if (nome && !alunos.includes(nome)) {
+        alunos.push(nome);
+        salvarDados();
+        atualizarListas();
+        document.getElementById('nomeAluno').value = '';
+      }
+    }
+
+    function confirmarPagamento() {
+      const nome = document.getElementById('selectPagou').value;
+      if (nome && !pagos.includes(nome)) {
+        pagos.push(nome);
+        salvarDados();
+        atualizarListas();
+      }
+    }
+
+    // 🔥 Função ajustada com mês e ano automático
+    function exportarDados() {
+      const meses = [
+        "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+        "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
+      ];
+      const hoje = new Date();
+      const mesAtual = meses[hoje.getMonth()];
+      const anoAtual = hoje.getFullYear();
+
+      const pagosTexto = pagos.sort((a, b) => a.localeCompare(b)).map(p => `✅ ${p}`).join('\n');
+      const pendentesTexto = alunos.filter(a => !pagos.includes(a)).sort((a, b) => a.localeCompare(b)).map(a => `❌ ${a}`).join('\n');
+      
+      const texto = `*LEÃO DE JUDÁ - PAGAMENTOS DO MÊS DE ${mesAtual} DE ${anoAtual}*\n\n*Pagamentos Confirmados:*\n${pagosTexto}\n\n*Pendentes:*\n${pendentesTexto}\n\n_Atenciosamente, Equipe Leão de Judá_`;
+      const url = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+      window.open(url, '_blank');
+    }
+
+    function reiniciarPagamentos() {
+      if (confirm('Tem certeza que deseja reiniciar todos os pagamentos deste mês?')) {
+        pagos = [];
+        salvarDados();
+        atualizarListas();
+      }
+    }
+
+    // 🔥 Exportar alunos para um arquivo .txt
+    function exportarAlunos() {
+      const texto = alunos.sort((a, b) => a.localeCompare(b)).join('\n');
+      const blob = new Blob([texto], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'alunos_backup.txt';
+      link.click();
+    }
+
+    // 🔥 Importar alunos de um arquivo .txt
+    function importarAlunos(event) {
+      const arquivo = event.target.files[0];
+      if (!arquivo) return;
+
+      const leitor = new FileReader();
+      leitor.onload = function(e) {
+        const conteudo = e.target.result.split('\n').map(l => l.trim()).filter(l => l);
+        conteudo.forEach(nome => {
+          if (!alunos.includes(nome)) {
+            alunos.push(nome);
+          }
+        });
+        salvarDados();
+        atualizarListas();
+        alert("Alunos importados com sucesso!");
+      };
+      leitor.readAsText(arquivo);
+    }
+
+    atualizarListas();
+  </script>
+</body>
+</html>
